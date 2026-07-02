@@ -16,6 +16,7 @@ It does not claim to reliably detect all AI-generated writing. The MVP focuses o
   - Enable or disable globally
   - Hide, blur, or label matches
   - Toggle ad blocking, AI feature blocking, and heuristic detection
+  - Debug overlay that shows each match with its reason, the evidence that matched, and where the evidence was found (visible text, image alt text, link URL, and so on) without hiding anything
   - Disable on current site
 - Options page:
   - Allowlist

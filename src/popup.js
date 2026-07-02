@@ -5,6 +5,7 @@ const form = {
   ads: document.querySelector("#adsToggle"),
   ai: document.querySelector("#aiToggle"),
   heuristic: document.querySelector("#heuristicToggle"),
+  debug: document.querySelector("#debugToggle"),
   siteToggle: document.querySelector("#siteToggle"),
   optionsButton: document.querySelector("#optionsButton"),
   blockedCount: document.querySelector("#blockedCount"),
@@ -29,6 +30,7 @@ async function saveSettings(patch) {
   await chrome.storage.sync.set(settings);
   await refreshContentScript();
   render();
+  await loadStats();
 }
 
 async function refreshContentScript() {
@@ -64,6 +66,7 @@ function render() {
   form.ads.checked = settings.blockAds;
   form.ai.checked = settings.blockAiFeatures;
   form.heuristic.checked = settings.heuristicDetection;
+  form.debug.checked = settings.debugOverlay;
   form.siteToggle.textContent = disabled ? "Enable on this site" : "Disable on this site";
 }
 
@@ -78,6 +81,7 @@ async function init() {
   form.ads.addEventListener("change", () => saveSettings({ blockAds: form.ads.checked }));
   form.ai.addEventListener("change", () => saveSettings({ blockAiFeatures: form.ai.checked }));
   form.heuristic.addEventListener("change", () => saveSettings({ heuristicDetection: form.heuristic.checked }));
+  form.debug.addEventListener("change", () => saveSettings({ debugOverlay: form.debug.checked }));
   form.siteToggle.addEventListener("click", async () => {
     const host = normalizeHost(new URL(activeTab.url).hostname);
     const disabledSites = settings.disabledSites.includes(host)

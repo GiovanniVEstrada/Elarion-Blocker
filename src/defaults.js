@@ -6,6 +6,7 @@
     blockAiFeatures: true,
     heuristicDetection: true,
     heuristicThreshold: 7,
+    debugOverlay: false,
     disabledSites: [],
     allowlist: [],
     customTextRules: [],

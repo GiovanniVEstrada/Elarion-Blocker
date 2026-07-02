@@ -19,6 +19,26 @@
   position: relative !important;
 }
 
+.elarion-debug {
+  outline: 2px dashed #2563eb !important;
+  outline-offset: 2px !important;
+  position: relative !important;
+}
+
+.elarion-debug-badge {
+  display: block !important;
+  width: fit-content !important;
+  max-width: 320px !important;
+  margin: 0 0 6px 0 !important;
+  padding: 6px 9px !important;
+  border-radius: 6px !important;
+  background: #14243f !important;
+  color: #dbeafe !important;
+  font: 11px/1.45 ui-monospace, Consolas, monospace !important;
+  overflow-wrap: anywhere !important;
+  z-index: 2147483647 !important;
+}
+
 .elarion-label-badge {
   display: inline-flex !important;
   align-items: center !important;

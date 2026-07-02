@@ -80,56 +80,73 @@
     }
   }
 
-  function textMatches(text, patterns) {
-    const lower = text.toLowerCase();
-    return patterns.some((pattern) => lower.includes(pattern.toLowerCase()));
-  }
-
-  function regexMatches(text, rules) {
-    return rules.some((rule) => {
-      try {
-        return new RegExp(rule.pattern, rule.flags || "i").test(text);
-      } catch {
-        return false;
-      }
-    });
-  }
-
   function getSiteRules() {
     const host = getPageHost();
     return SITE_RULES.filter((rule) => rule.hostIncludes.some((part) => host.includes(part)));
   }
 
-  function getElementSearchText(element) {
+  function getSearchParts(element) {
     const parts = [
-      element.innerText || "",
-      element.textContent || "",
-      element.getAttribute("aria-label") || "",
-      element.getAttribute("title") || "",
-      element.getAttribute("alt") || ""
+      { source: "visible text", text: element.innerText || "" },
+      { source: "aria-label", text: element.getAttribute("aria-label") || "" },
+      { source: "title attribute", text: element.getAttribute("title") || "" },
+      { source: "image alt text", text: element.getAttribute("alt") || "" }
     ];
 
     element.querySelectorAll("[aria-label], [title], img[alt], a[href]").forEach((node) => {
-      parts.push(node.getAttribute("aria-label") || "");
-      parts.push(node.getAttribute("title") || "");
-      parts.push(node.getAttribute("alt") || "");
-      parts.push(node.getAttribute("href") || "");
+      parts.push({ source: "aria-label", text: node.getAttribute("aria-label") || "" });
+      parts.push({ source: "title attribute", text: node.getAttribute("title") || "" });
+      parts.push({ source: "image alt text", text: node.getAttribute("alt") || "" });
+      parts.push({ source: "link URL", text: node.getAttribute("href") || "" });
     });
 
-    return parts.join(" ").replace(/\s+/g, " ").trim();
+    // Last so evidence found in more specific parts reports those sources.
+    parts.push({ source: "text content", text: element.textContent || "" });
+    return parts;
+  }
+
+  function joinSearchParts(parts) {
+    return parts.map((part) => part.text).join(" ").replace(/\s+/g, " ").trim();
+  }
+
+  function locateEvidence(parts, patterns) {
+    if (!patterns?.length) return null;
+    for (const part of parts) {
+      if (!part.text) continue;
+      const lower = part.text.toLowerCase();
+      const pattern = patterns.find((candidate) => lower.includes(candidate.toLowerCase()));
+      if (pattern) return { evidence: pattern, source: part.source };
+    }
+    return null;
+  }
+
+  function findRegexEvidence(parts, text, rules) {
+    for (const rule of rules) {
+      try {
+        const match = text.match(new RegExp(rule.pattern, rule.flags || "i"));
+        if (!match) continue;
+        const part = parts.find((candidate) =>
+          candidate.text && new RegExp(rule.pattern, rule.flags || "i").test(candidate.text));
+        return { evidence: match[0] || rule.pattern, source: part ? part.source : "page text" };
+      } catch {
+        // Invalid custom regex rules are ignored.
+      }
+    }
+    return null;
   }
 
   function sourceDomainMatches(element, domains) {
-    if (!domains?.length) return false;
-    const links = Array.from(element.querySelectorAll("a[href]"));
-    return links.some((link) => {
+    if (!domains?.length) return null;
+    for (const link of element.querySelectorAll("a[href]")) {
       try {
         const host = normalizeHost(new URL(link.href, location.href).hostname);
-        return domains.some((domain) => host === domain || host.endsWith(`.${domain}`));
+        const domain = domains.find((candidate) => host === candidate || host.endsWith(`.${candidate}`));
+        if (domain) return domain;
       } catch {
-        return false;
+        // Unparseable hrefs carry no domain evidence.
       }
-    });
+    }
+    return null;
   }
 
   function getBlockTarget(element) {
@@ -186,50 +203,98 @@
   }
 
   function findReason(element, settings) {
-    const text = getElementSearchText(element);
+    const parts = getSearchParts(element);
+    const text = joinSearchParts(parts);
     if (!text.trim() && element.tagName !== "IFRAME") return null;
     if (isAllowed(settings, text)) return null;
 
     const host = getPageHost();
-    if (settings.customDomainRules.some((domain) => host === domain || host.endsWith(`.${domain}`))) {
-      return "custom domain rule";
+    const hostRule = settings.customDomainRules.find((domain) => host === domain || host.endsWith(`.${domain}`));
+    if (hostRule) {
+      return { reason: "custom domain rule", evidence: hostRule, source: "page address" };
     }
-    if (sourceDomainMatches(element, settings.customDomainRules)) {
-      return "custom source domain rule";
+    const customSource = sourceDomainMatches(element, settings.customDomainRules);
+    if (customSource) {
+      return { reason: "custom source domain rule", evidence: customSource, source: "link URL" };
     }
 
-    if (settings.blockAds && GENERIC_AD_SELECTORS.some((selector) => safeMatches(element, selector))) {
-      return "ad selector";
+    if (settings.blockAds) {
+      const adSelector = GENERIC_AD_SELECTORS.find((selector) => safeMatches(element, selector));
+      if (adSelector) return { reason: "ad selector", evidence: adSelector, source: "element attributes" };
     }
 
     if (settings.blockAiFeatures) {
-      const siteRule = getSiteRules().find((rule) => {
-        const selectorHit = rule.selectors.some((selector) => safeMatches(element, selector));
-        const textHit = textMatches(text, rule.textPatterns);
+      for (const rule of getSiteRules()) {
+        const selectorHit = rule.selectors.find((selector) => safeMatches(element, selector));
+        const textHit = locateEvidence(parts, rule.textPatterns);
         const sourceHit = sourceDomainMatches(element, rule.sourceDomains);
-        if (rule.selectorRequiresEvidence) return sourceHit || (selectorHit && textHit);
-        return selectorHit || textHit || sourceHit;
-      });
-      if (siteRule) return siteRule.id;
+        let match = null;
+        if (rule.selectorRequiresEvidence) {
+          if (sourceHit) match = { evidence: sourceHit, source: "link URL" };
+          else if (selectorHit && textHit) match = textHit;
+        } else if (textHit) {
+          match = textHit;
+        } else if (selectorHit) {
+          match = { evidence: selectorHit, source: "element attributes" };
+        } else if (sourceHit) {
+          match = { evidence: sourceHit, source: "link URL" };
+        }
+        if (match) return { reason: rule.id, ...match };
+      }
 
-      if (textMatches(text, GENERIC_AI_TEXT_PATTERNS)) return "AI feature text";
-      if (regexMatches(text, settings.customTextRules)) return "custom text rule";
-      if (settings.customSelectorRules.some((selector) => safeMatches(element, selector))) return "custom selector rule";
+      const genericHit = locateEvidence(parts, GENERIC_AI_TEXT_PATTERNS);
+      if (genericHit) return { reason: "AI feature text", ...genericHit };
+
+      const customText = findRegexEvidence(parts, text, settings.customTextRules);
+      if (customText) return { reason: "custom text rule", ...customText };
+
+      const customSelector = settings.customSelectorRules.find((selector) => safeMatches(element, selector));
+      if (customSelector) {
+        return { reason: "custom selector rule", evidence: customSelector, source: "element attributes" };
+      }
     }
 
-    if (settings.heuristicDetection && scoreAiLikeText(text) >= settings.heuristicThreshold) {
-      return "AI-like writing pattern";
+    if (settings.heuristicDetection) {
+      const score = scoreAiLikeText(text);
+      if (score >= settings.heuristicThreshold) {
+        return {
+          reason: "AI-like writing pattern",
+          evidence: `score ${score} (threshold ${settings.heuristicThreshold})`,
+          source: "text analysis"
+        };
+      }
     }
 
     return null;
   }
 
-  function applyAction(element, reason, settings) {
+  function applyAction(element, detail, settings) {
+    const info = typeof detail === "string" ? { reason: detail } : detail;
     const target = getBlockTarget(element);
     if (target.dataset.elarionBlocked === "true") return;
     target.dataset.elarionBlocked = "true";
-    target.dataset.elarionReason = reason;
+    target.dataset.elarionReason = info.reason;
+    if (info.evidence) target.dataset.elarionEvidence = info.evidence;
+    if (info.source) target.dataset.elarionSource = info.source;
 
+    if (settings.debugOverlay) {
+      target.classList.add("elarion-debug");
+      if (!target.querySelector(":scope > .elarion-debug-badge")) {
+        const badge = document.createElement("div");
+        badge.className = "elarion-debug-badge";
+        [["Reason", info.reason], ["Evidence", info.evidence], ["Source", info.source]].forEach(([label, value]) => {
+          if (!value) return;
+          const line = document.createElement("div");
+          line.textContent = `${label}: ${value}`;
+          badge.appendChild(line);
+        });
+        target.prepend(badge);
+      }
+      state.labeled += 1;
+      return;
+    }
+
+    const reason = info.reason;
     if (settings.mode === "label") {
       target.classList.add("elarion-labeled");
       if (!target.querySelector(":scope > .elarion-label-badge")) {
@@ -261,7 +326,7 @@
     selectorGroups.forEach((selector) => {
       safeQuerySelectorAll(root, selector).forEach((element) => {
         if (element instanceof HTMLElement) {
-          applyAction(element, selector, settings);
+          applyAction(element, { reason: selector, evidence: selector, source: "element attributes" }, settings);
         }
       });
     });
@@ -274,8 +339,8 @@
     for (const element of getCandidateBlocks(document)) {
       if (state.scanned.has(element)) continue;
       state.scanned.add(element);
-      const reason = findReason(element, state.settings);
-      if (reason) applyAction(element, reason, state.settings);
+      const detail = findReason(element, state.settings);
+      if (detail) applyAction(element, detail, state.settings);
     }
 
     if (isExtensionContextReady()) {
@@ -287,6 +352,20 @@
         labeled: state.labeled
       });
     }
+  }
+
+  function resetActions() {
+    document.querySelectorAll(".elarion-label-badge, .elarion-debug-badge").forEach((badge) => badge.remove());
+    document.querySelectorAll("[data-elarion-blocked]").forEach((element) => {
+      element.classList.remove("elarion-hidden", "elarion-blurred", "elarion-labeled", "elarion-debug");
+      delete element.dataset.elarionBlocked;
+      delete element.dataset.elarionReason;
+      delete element.dataset.elarionEvidence;
+      delete element.dataset.elarionSource;
+    });
+    state.scanned = new WeakSet();
+    state.blocked = 0;
+    state.labeled = 0;
   }
 
   function queueScan() {
@@ -311,6 +390,7 @@
         }
         if (message?.type === "ELARION_REFRESH") {
           state.settings = { ...DEFAULT_SETTINGS, ...message.settings };
+          resetActions();
           scanPage();
           sendResponse({ ok: true });
         }
