@@ -1,3 +1,14 @@
+/* Unambiguous ad elements are hidden from the very first paint, before
+   any script runs. content.js sets data-elarion-ads-off on <html> when
+   ad hiding should not apply (blocker off, site disabled, or a preset
+   that labels/blurs/shows ads instead). */
+html:not([data-elarion-ads-off]) ins.adsbygoogle,
+html:not([data-elarion-ads-off]) iframe[src*="doubleclick"],
+html:not([data-elarion-ads-off]) iframe[src*="googlesyndication"],
+html:not([data-elarion-ads-off]) iframe[src*="adservice"] {
+  display: none !important;
+}
+
 .elarion-hidden {
   display: none !important;
 }

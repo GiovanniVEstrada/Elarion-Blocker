@@ -13,7 +13,9 @@
     labeled: 0,
     observer: null,
     scanned: new WeakSet(),
-    queued: false
+    queued: false,
+    pendingRoots: new Set(),
+    needsFullSweep: true
   };
 
   const chromeApi = typeof chrome !== "undefined" ? chrome : null;
@@ -105,8 +107,9 @@
   }
 
   function getSearchParts(element) {
+    // No innerText here: it forces synchronous layout on every candidate,
+    // and textContent already covers the same text.
     const parts = [
-      { source: "visible text", text: element.innerText || "" },
       { source: "aria-label", text: element.getAttribute("aria-label") || "" },
       { source: "title attribute", text: element.getAttribute("title") || "" },
       { source: "image alt text", text: element.getAttribute("alt") || "" }
@@ -120,7 +123,7 @@
     });
 
     // Last so evidence found in more specific parts reports those sources.
-    parts.push({ source: "text content", text: element.textContent || "" });
+    parts.push({ source: "page text", text: element.textContent || "" });
     return parts;
   }
 
@@ -176,28 +179,30 @@
     return element;
   }
 
-  function getCandidateBlocks(root) {
-    const selectors = [
-      "article",
-      "aside",
-      "section",
-      "[role='article']",
-      "[role='complementary']",
-      "[role='region']",
-      "[data-testid*='post' i]",
-      "[data-testid*='result' i]",
-      "[data-test-id='pin']",
-      "[data-test-id='pinWrapper']",
-      "[data-test-id='closeup-main-pin']",
-      "[data-test-id*='pin' i]",
-      "[role='listitem']",
-      ".post",
-      ".result",
-      ".card"
-    ];
-    const candidates = new Set();
-    selectors.forEach((selector) => safeQuerySelectorAll(root, selector).forEach((node) => candidates.add(node)));
-    return Array.from(candidates).filter((element) => element instanceof HTMLElement);
+  const CANDIDATE_SELECTOR = [
+    "article",
+    "aside",
+    "section",
+    "[role='article']",
+    "[role='complementary']",
+    "[role='region']",
+    "[data-testid*='post' i]",
+    "[data-testid*='result' i]",
+    "[data-test-id='pin']",
+    "[data-test-id='pinWrapper']",
+    "[data-test-id='closeup-main-pin']",
+    "[data-test-id*='pin' i]",
+    "[role='listitem']",
+    ".post",
+    ".result",
+    ".card"
+  ].join(", ");
+
+  function collectCandidates(root, out) {
+    if (root instanceof HTMLElement && safeMatches(root, CANDIDATE_SELECTOR)) out.add(root);
+    safeQuerySelectorAll(root, CANDIDATE_SELECTOR).forEach((node) => {
+      if (node instanceof HTMLElement) out.add(node);
+    });
   }
 
   function scoreAiLikeText(text) {
@@ -393,10 +398,36 @@
   }
 
   function scanPage() {
-    if (!state.settings.enabled || isSiteDisabled(state.settings)) return;
+    if (!state.settings.enabled || isSiteDisabled(state.settings)) {
+      state.pendingRoots.clear();
+      return;
+    }
 
+    // Attribute selectors are cheap, so they always sweep the document;
+    // the expensive text extraction only runs on newly added subtrees.
     scanSelectors(document, state.settings);
-    for (const element of getCandidateBlocks(document)) {
+
+    // While the parser is still streaming, a candidate's evidence may not
+    // exist yet, and scanned elements are never revisited. Candidates wait
+    // for DOMContentLoaded, which triggers a full sweep.
+    if (document.readyState === "loading") return;
+
+    const candidates = new Set();
+    if (state.needsFullSweep) {
+      state.needsFullSweep = false;
+      state.pendingRoots.clear();
+      safeQuerySelectorAll(document, CANDIDATE_SELECTOR).forEach((node) => {
+        if (node instanceof HTMLElement) candidates.add(node);
+      });
+    } else {
+      const roots = Array.from(state.pendingRoots);
+      state.pendingRoots.clear();
+      roots.forEach((root) => {
+        if (root.isConnected) collectCandidates(root, candidates);
+      });
+    }
+
+    for (const element of candidates) {
       if (state.scanned.has(element)) continue;
       state.scanned.add(element);
       const detail = findReason(element, state.settings);
@@ -428,20 +459,52 @@
     state.labeled = 0;
   }
 
+  function onMutations(mutations) {
+    let added = false;
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (!(node instanceof HTMLElement)) continue;
+        // Skip Elarion's own badges and covers so applying an action
+        // never schedules another scan.
+        if (typeof node.className === "string" && node.className.startsWith("elarion-")) continue;
+        state.pendingRoots.add(node);
+        added = true;
+      }
+    }
+    if (added) queueScan();
+  }
+
   function queueScan() {
     if (state.queued) return;
     state.queued = true;
     window.setTimeout(() => {
       state.queued = false;
       scanPage();
-    }, 120);
+    }, 80);
+  }
+
+  function syncInstantHide(settings) {
+    // content.css hides unambiguous ad elements from the first paint;
+    // this attribute switches that off when hiding them would be wrong.
+    const cssHide = settings.enabled
+      && settings.blockAds
+      && !isSiteDisabled(settings)
+      && getEffectiveAction("ad", settings) === "hide";
+    document.documentElement.toggleAttribute("data-elarion-ads-off", !cssHide);
   }
 
   async function init() {
     state.settings = await loadSettings();
-    scanPage();
-    state.observer = new MutationObserver(queueScan);
+    syncInstantHide(state.settings);
+    state.observer = new MutationObserver(onMutations);
     state.observer.observe(document.documentElement, { childList: true, subtree: true });
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        state.needsFullSweep = true;
+        scanPage();
+      }, { once: true });
+    }
+    scanPage();
 
     if (isExtensionContextReady()) {
       chromeApi.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -451,6 +514,8 @@
         if (message?.type === "ELARION_REFRESH") {
           state.settings = { ...DEFAULT_SETTINGS, ...message.settings };
           resetActions();
+          state.needsFullSweep = true;
+          syncInstantHide(state.settings);
           scanPage();
           sendResponse({ ok: true });
         }
