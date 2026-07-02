@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Elarion Options</title>
+    <link rel="stylesheet" href="ui.css">
+  </head>
+  <body>
+    <main class="options-shell">
+      <header class="options-header">
+        <h1>Elarion Blocker</h1>
+        <p>Local rules for ads, AI feature panels, and AI-like text. No page content leaves your browser.</p>
+      </header>
+
+      <section class="option-grid">
+        <label>
+          <span>Default action</span>
+          <select id="modeSelect">
+            <option value="hide">Hide</option>
+            <option value="blur">Blur</option>
+            <option value="label">Label only</option>
+          </select>
+        </label>
+        <label>
+          <span>Heuristic threshold</span>
+          <input id="thresholdInput" type="number" min="3" max="16" step="1">
+        </label>
+      </section>
+
+      <section class="rule-editor">
+        <h2>Allowlist</h2>
+        <textarea id="allowlistInput" spellcheck="false" placeholder="example.com&#10;trusted author phrase"></textarea>
+      </section>
+
+      <section class="rule-editor">
+        <h2>Disabled sites</h2>
+        <textarea id="disabledSitesInput" spellcheck="false" placeholder="example.com"></textarea>
+      </section>
+
+      <section class="rule-editor">
+        <h2>Custom CSS selectors</h2>
+        <textarea id="selectorsInput" spellcheck="false" placeholder=".sponsored&#10;[data-ai-summary]"></textarea>
+      </section>
+
+      <section class="rule-editor">
+        <h2>Custom text regex</h2>
+        <textarea id="textRulesInput" spellcheck="false" placeholder="generated\\s+by\\s+ai"></textarea>
+      </section>
+
+      <section class="rule-editor">
+        <h2>Blocked domains</h2>
+        <textarea id="domainRulesInput" spellcheck="false" placeholder="spam.example"></textarea>
+      </section>
+
+      <footer class="actions">
+        <button id="resetButton" class="secondary" type="button">Reset</button>
+        <button id="saveButton" type="button">Save</button>
+        <span id="statusText" role="status"></span>
+      </footer>
+    </main>
+    <script src="defaults.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

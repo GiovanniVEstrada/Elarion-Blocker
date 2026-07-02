@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Elarion Blocker</title>
+    <link rel="stylesheet" href="ui.css">
+  </head>
+  <body class="popup">
+    <main class="panel">
+      <header class="panel-header">
+        <div>
+          <h1>Elarion</h1>
+          <p id="siteLabel">Current site</p>
+        </div>
+        <label class="switch" title="Enable blocker">
+          <input id="enabledToggle" type="checkbox">
+          <span></span>
+        </label>
+      </header>
+
+      <section class="stats-row" aria-label="Page stats">
+        <div>
+          <strong id="blockedCount">0</strong>
+          <span>blocked</span>
+        </div>
+        <div>
+          <strong id="labeledCount">0</strong>
+          <span>labeled</span>
+        </div>
+      </section>
+
+      <section class="control-group">
+        <label for="modeSelect">Action</label>
+        <select id="modeSelect">
+          <option value="hide">Hide</option>
+          <option value="blur">Blur</option>
+          <option value="label">Label only</option>
+        </select>
+      </section>
+
+      <section class="checks">
+        <label><input id="adsToggle" type="checkbox"> Ads</label>
+        <label><input id="aiToggle" type="checkbox"> AI boxes</label>
+        <label><input id="heuristicToggle" type="checkbox"> AI-like text</label>
+      </section>
+
+      <button id="siteToggle" class="secondary" type="button">Disable on this site</button>
+      <button id="optionsButton" type="button">Options</button>
+    </main>
+    <script src="defaults.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

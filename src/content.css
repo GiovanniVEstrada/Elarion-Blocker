@@ -1,0 +1,35 @@
+.elarion-hidden {
+  display: none !important;
+}
+
+.elarion-blurred {
+  filter: blur(8px) !important;
+  opacity: 0.45 !important;
+  transition: filter 120ms ease, opacity 120ms ease;
+}
+
+.elarion-blurred:hover {
+  filter: blur(2px) !important;
+  opacity: 0.72 !important;
+}
+
+.elarion-labeled {
+  outline: 2px solid #d64f2a !important;
+  outline-offset: 2px !important;
+  position: relative !important;
+}
+
+.elarion-label-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  width: fit-content !important;
+  margin: 0 0 6px 0 !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  background: #1f2937 !important;
+  color: #ffffff !important;
+  font: 12px/1.3 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  letter-spacing: 0 !important;
+  z-index: 2147483647 !important;
+}
