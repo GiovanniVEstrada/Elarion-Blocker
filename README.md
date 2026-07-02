@@ -13,6 +13,7 @@ It does not claim to reliably detect all AI-generated writing. The MVP focuses o
 - Site-specific AI feature filters for Google, Bing, LinkedIn, Reddit, Medium, and Pinterest
 - Pinterest-specific blocking for promoted pins, sponsored UI, AI-art terms, AI-image generator mentions, and known AI-art source domains
 - Local text heuristics for AI-like writing patterns
+- Layout-aware hiding: elements in normal page flow collapse as usual, but absolutely positioned tiles (like Pinterest's masonry grid) are replaced with a quiet "Hidden by Elarion" cover and a Show button — feeds never show blank holes or shifted layouts, and any hidden tile can be revealed in place
 - Per-site presets: ads and AI content each get their own action (hide, blur, label, off, or the global default) per site. Shipped defaults: Pinterest labels AI pins and hides ad pins; Google and Bing hide AI answer boxes; Reddit and Medium label AI content; LinkedIn hides AI tools. Sites whose preset keeps ads visible are also excluded from network-level ad blocking.
 - Popup controls:
   - Enable or disable globally
@@ -50,6 +51,8 @@ Pinterest gets special handling because useful signals often live inside pin met
 1. In `chrome://extensions`, open Elarion's details and enable **Allow access to file URLs**.
 2. Leave settings at their defaults — the built-in Pinterest preset hides ad pins and labels AI pins.
 3. Open the fixture file in Chrome and compare each card against its EXPECT chip.
+
+The masonry strip on the fixture mimics Pinterest's absolutely positioned grid: its promoted tile should become a neutral cover with a Show button rather than a blank hole, and the neighboring tiles must not move.
 
 The fixture impersonates `www.pinterest.com` through a `<meta name="elarion-host-override">` tag. The content script honors that tag only on `file:` pages, so remote sites cannot use it.
 

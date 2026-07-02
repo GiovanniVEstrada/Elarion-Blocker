@@ -331,9 +331,40 @@
       target.classList.add("elarion-blurred");
       state.blocked += 1;
     } else {
-      target.classList.add("elarion-hidden");
+      hideTarget(target, info);
       state.blocked += 1;
     }
+  }
+
+  function hideTarget(target, info) {
+    // display:none on absolutely positioned items (masonry grids like
+    // Pinterest) leaves a blank hole because siblings never reflow, so
+    // those get a neutral cover tile that preserves the layout instead.
+    const position = getComputedStyle(target).position;
+    if (position !== "absolute" && position !== "fixed") {
+      target.classList.add("elarion-hidden");
+      return;
+    }
+
+    target.classList.add("elarion-tile-hidden");
+    if (target.querySelector(":scope > .elarion-cover")) return;
+
+    const cover = document.createElement("div");
+    cover.className = "elarion-cover";
+    const label = document.createElement("span");
+    label.textContent = info.category === "ad" ? "Ad hidden by Elarion" : "Hidden by Elarion";
+    const show = document.createElement("button");
+    show.type = "button";
+    show.textContent = "Show";
+    show.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      target.classList.remove("elarion-tile-hidden");
+      cover.remove();
+    });
+    cover.appendChild(label);
+    cover.appendChild(show);
+    target.appendChild(cover);
   }
 
   function scanSelectors(root, settings) {
@@ -384,9 +415,9 @@
   }
 
   function resetActions() {
-    document.querySelectorAll(".elarion-label-badge, .elarion-debug-badge").forEach((badge) => badge.remove());
+    document.querySelectorAll(".elarion-label-badge, .elarion-debug-badge, .elarion-cover").forEach((node) => node.remove());
     document.querySelectorAll("[data-elarion-blocked]").forEach((element) => {
-      element.classList.remove("elarion-hidden", "elarion-blurred", "elarion-labeled", "elarion-debug");
+      element.classList.remove("elarion-hidden", "elarion-blurred", "elarion-labeled", "elarion-debug", "elarion-tile-hidden");
       delete element.dataset.elarionBlocked;
       delete element.dataset.elarionReason;
       delete element.dataset.elarionEvidence;
@@ -403,7 +434,7 @@
     window.setTimeout(() => {
       state.queued = false;
       scanPage();
-    }, 300);
+    }, 120);
   }
 
   async function init() {

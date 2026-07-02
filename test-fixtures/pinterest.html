@@ -71,6 +71,24 @@
       max-width: 78ch;
     }
     footer code { background: #eae6df; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    .masonry-note {
+      margin: 0 28px 12px;
+      max-width: 1200px;
+      font-size: 13px;
+      color: #5c554d;
+    }
+    .masonry-note h2 { margin: 0 0 4px; font-size: 15px; color: #211d1a; }
+    .masonry-demo {
+      position: relative;
+      height: 420px;
+      margin: 0 28px 24px;
+      max-width: 1200px;
+    }
+    .masonry-pin {
+      position: absolute;
+      top: 0;
+      width: 236px;
+    }
     .net-test {
       margin: 0 28px 24px;
       max-width: 1200px;
@@ -169,6 +187,47 @@
         <span class="expect expect-clean">EXPECT: CLEAN</span>
         <h2>Air fryer dinner ideas for busy weeknights</h2>
         <a href="https://example.com/air-fryer-dinners">example.com/air-fryer-dinners</a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="masonry-note">
+    <h2>Masonry layout test</h2>
+    <p>These three tiles are absolutely positioned, exactly like Pinterest&rsquo;s real grid.
+       The middle tile should turn into a quiet &ldquo;Ad hidden by Elarion&rdquo; cover with a
+       Show button &mdash; not a blank hole &mdash; and the tiles beside it must not move.</p>
+  </div>
+  <div class="masonry-demo">
+
+    <div class="fixture-pin masonry-pin" data-test-id="pin" data-expected="clean" style="left: 0;">
+      <img width="236" height="320" alt="Cozy reading nook with warm lighting"
+           src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%23b89a8c'/%3E%3C/svg%3E">
+      <div class="pin-body">
+        <span class="expect expect-clean">EXPECT: CLEAN</span>
+        <h2>Cozy reading nook ideas</h2>
+        <a href="https://example.com/reading-nook">example.com/reading-nook</a>
+      </div>
+    </div>
+
+    <div class="fixture-pin masonry-pin" data-test-id="pin" data-expected="covered" style="left: 254px;">
+      <div class="promo-tag" aria-label="Promoted">Promoted</div>
+      <img width="236" height="320" alt="Hiking backpack product photo"
+           src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%237ba38c'/%3E%3C/svg%3E">
+      <div class="pin-body">
+        <span class="expect expect-flag">EXPECT: COVERED</span>
+        <h2>TrailMax hiking backpack</h2>
+        <a href="https://example.com/trailmax-backpack">example.com/trailmax-backpack</a>
+      </div>
+    </div>
+
+    <div class="fixture-pin masonry-pin" data-test-id="pin" data-expected="clean" style="left: 508px;">
+      <img width="236" height="320" alt="Bowl of pasta with fresh basil"
+           src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%23c2b280'/%3E%3C/svg%3E">
+      <div class="pin-body">
+        <span class="expect expect-clean">EXPECT: CLEAN</span>
+        <h2>Simple weeknight pasta recipes</h2>
+        <a href="https://example.com/weeknight-pasta">example.com/weeknight-pasta</a>
       </div>
     </div>
 
