@@ -13,10 +13,12 @@ It does not claim to reliably detect all AI-generated writing. The MVP focuses o
 - Site-specific AI feature filters for Google, Bing, LinkedIn, Reddit, Medium, and Pinterest
 - Pinterest-specific blocking for promoted pins, sponsored UI, AI-art terms, AI-image generator mentions, and known AI-art source domains
 - Local text heuristics for AI-like writing patterns
+- Per-site presets: ads and AI content each get their own action (hide, blur, label, off, or the global default) per site. Shipped defaults: Pinterest labels AI pins and hides ad pins; Google and Bing hide AI answer boxes; Reddit and Medium label AI content; LinkedIn hides AI tools. Sites whose preset keeps ads visible are also excluded from network-level ad blocking.
 - Popup controls:
   - Enable or disable globally
   - Hide, blur, or label matches
   - Toggle ad blocking, ad network blocking, AI feature blocking, and heuristic detection
+  - Set the current site's per-category actions ("This site": Ads / AI content)
   - Debug overlay that shows each match with its reason, the evidence that matched, and where the evidence was found (visible text, image alt text, link URL, and so on) without hiding anything
   - Disable on current site
 - Options page:
@@ -46,7 +48,7 @@ Pinterest gets special handling because useful signals often live inside pin met
 `test-fixtures/pinterest.html` is a local page of fake pin cards for tuning Pinterest rules against stable markup instead of the live site:
 
 1. In `chrome://extensions`, open Elarion's details and enable **Allow access to file URLs**.
-2. Set the mode to **Label only** in the popup.
+2. Leave settings at their defaults — the built-in Pinterest preset hides ad pins and labels AI pins.
 3. Open the fixture file in Chrome and compare each card against its EXPECT chip.
 
 The fixture impersonates `www.pinterest.com` through a `<meta name="elarion-host-override">` tag. The content script honors that tag only on `file:` pages, so remote sites cannot use it.

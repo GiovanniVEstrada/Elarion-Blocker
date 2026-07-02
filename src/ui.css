@@ -186,6 +186,18 @@ input[type="number"] {
   gap: 8px;
 }
 
+.preset-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.preset-grid label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .options-shell {
   width: min(900px, calc(100vw - 32px));
   margin: 0 auto;

@@ -93,10 +93,10 @@
     <p>Fake pin cards with stable markup for tuning rules without live Pinterest.</p>
     <ol>
       <li>In chrome://extensions, open Elarion&rsquo;s Details and enable <strong>Allow access to file URLs</strong>.</li>
-      <li>Set Elarion&rsquo;s mode to <strong>Label only</strong> in the popup.</li>
+      <li>Leave settings at their defaults &mdash; the built-in Pinterest preset hides ad pins and labels the rest of the matches.</li>
       <li>Open this file in Chrome and check each card against its EXPECT chip.</li>
     </ol>
-    <p>Pin 1 and the two trap pins must stay clean. Pin 2 (ad label), pin 3 (generator name in metadata), and pin 4 (art-platform link) must each get a badge.</p>
+    <p>Pin 1 and the two trap pins must stay untouched. Pin 2 (ad label) should disappear entirely. Pin 3 (generator name in metadata) and pin 4 (art-platform link) should get badges. Turn on <strong>Debug overlay</strong> in the popup to see every match &mdash; including the hidden pin &mdash; with its reason, evidence, and source.</p>
   </header>
 
   <div class="grid">
@@ -119,7 +119,7 @@
       <img width="236" height="320" alt="Modern white sneakers product photo"
            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%23a6b4c8'/%3E%3C/svg%3E">
       <div class="pin-body">
-        <span class="expect expect-flag">EXPECT: FLAGGED</span>
+        <span class="expect expect-flag">EXPECT: HIDDEN</span>
         <h2>CloudStep everyday sneakers</h2>
         <a href="https://example.com/cloudstep-sneakers">example.com/cloudstep-sneakers</a>
       </div>
@@ -131,7 +131,7 @@
       <img width="236" height="320" alt="Cyberpunk portrait made with Midjourney v6"
            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%238c7bb0'/%3E%3C/svg%3E">
       <div class="pin-body">
-        <span class="expect expect-flag">EXPECT: FLAGGED</span>
+        <span class="expect expect-flag">EXPECT: LABELED</span>
         <h2>Neon cyberpunk portrait &mdash; prompt: glowing city lights, rain</h2>
         <a href="https://example.com/cyberpunk-portraits">example.com/cyberpunk-portraits</a>
       </div>
@@ -143,7 +143,7 @@
       <img width="236" height="320" alt="Armored fantasy knight illustration"
            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%23b0a17b'/%3E%3C/svg%3E">
       <div class="pin-body">
-        <span class="expect expect-flag">EXPECT: FLAGGED</span>
+        <span class="expect expect-flag">EXPECT: LABELED</span>
         <h2>Fantasy knight character design</h2>
         <a href="https://civitai.com/models/12345/fantasy-knight">civitai.com/models/12345</a>
       </div>
@@ -198,8 +198,8 @@
   </script>
 
   <footer>
-    <p><strong>Reading results:</strong> pin 2 may show either an attribute-selector reason or
-    <code>pinterest-ai-content</code> &mdash; both are correct, since two rules legitimately catch it.
+    <p><strong>Reading results:</strong> pin 2 is caught by the ad rules (an attribute selector or
+    <code>pinterest-promoted</code>) and hidden by the Pinterest preset &mdash; use Debug overlay to inspect it.
     Pins 3 and 4 should show <code>pinterest-ai-content</code>.</p>
     <p><strong>Regression check:</strong> if every card gets a badge with a reason like
     <code>[data-test-id='pin']</code>, broad selectors are blocking directly again and the old

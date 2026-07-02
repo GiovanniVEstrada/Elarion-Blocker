@@ -39,6 +39,28 @@
         </select>
       </section>
 
+      <section class="control-group">
+        <label>This site</label>
+        <div class="preset-grid">
+          <label for="siteAdAction">Ads</label>
+          <select id="siteAdAction">
+            <option value="default">Use global</option>
+            <option value="hide">Hide</option>
+            <option value="blur">Blur</option>
+            <option value="label">Label</option>
+            <option value="off">Off</option>
+          </select>
+          <label for="siteAiAction">AI content</label>
+          <select id="siteAiAction">
+            <option value="default">Use global</option>
+            <option value="hide">Hide</option>
+            <option value="blur">Blur</option>
+            <option value="label">Label</option>
+            <option value="off">Off</option>
+          </select>
+        </div>
+      </section>
+
       <section class="checks">
         <label><input id="adsToggle" type="checkbox"> Ads</label>
         <label title="Block requests to known ad-serving domains before they load"><input id="adNetworkToggle" type="checkbox"> Ad networks</label>

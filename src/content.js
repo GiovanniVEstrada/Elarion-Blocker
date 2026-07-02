@@ -85,6 +85,25 @@
     return SITE_RULES.filter((rule) => rule.hostIncludes.some((part) => host.includes(part)));
   }
 
+  const PRESET_ACTIONS = ["hide", "blur", "label", "off"];
+
+  function getSitePreset(settings) {
+    const host = getPageHost();
+    for (const [site, preset] of Object.entries(settings.sitePresets || {})) {
+      const key = normalizeHost(String(site).trim());
+      if (key && (host === key || host.endsWith(`.${key}`))) return preset;
+    }
+    return null;
+  }
+
+  function getEffectiveAction(category, settings) {
+    if (settings.debugOverlay) return "debug";
+    if (category !== "ad" && category !== "ai") return settings.mode;
+    const preset = getSitePreset(settings);
+    const action = preset?.[category === "ad" ? "adAction" : "aiAction"];
+    return PRESET_ACTIONS.includes(action) ? action : settings.mode;
+  }
+
   function getSearchParts(element) {
     const parts = [
       { source: "visible text", text: element.innerText || "" },
@@ -211,46 +230,50 @@
     const host = getPageHost();
     const hostRule = settings.customDomainRules.find((domain) => host === domain || host.endsWith(`.${domain}`));
     if (hostRule) {
-      return { reason: "custom domain rule", evidence: hostRule, source: "page address" };
+      return { reason: "custom domain rule", category: "custom", evidence: hostRule, source: "page address" };
     }
     const customSource = sourceDomainMatches(element, settings.customDomainRules);
     if (customSource) {
-      return { reason: "custom source domain rule", evidence: customSource, source: "link URL" };
+      return { reason: "custom source domain rule", category: "custom", evidence: customSource, source: "link URL" };
     }
 
     if (settings.blockAds) {
       const adSelector = GENERIC_AD_SELECTORS.find((selector) => safeMatches(element, selector));
-      if (adSelector) return { reason: "ad selector", evidence: adSelector, source: "element attributes" };
+      if (adSelector) {
+        return { reason: "ad selector", category: "ad", evidence: adSelector, source: "element attributes" };
+      }
+    }
+
+    for (const rule of getSiteRules()) {
+      const category = rule.category || "ai";
+      if (category === "ad" ? !settings.blockAds : !settings.blockAiFeatures) continue;
+      const selectorHit = rule.selectors.find((selector) => safeMatches(element, selector));
+      const textHit = locateEvidence(parts, rule.textPatterns);
+      const sourceHit = sourceDomainMatches(element, rule.sourceDomains);
+      let match = null;
+      if (rule.selectorRequiresEvidence) {
+        if (sourceHit) match = { evidence: sourceHit, source: "link URL" };
+        else if (selectorHit && textHit) match = textHit;
+      } else if (textHit) {
+        match = textHit;
+      } else if (selectorHit) {
+        match = { evidence: selectorHit, source: "element attributes" };
+      } else if (sourceHit) {
+        match = { evidence: sourceHit, source: "link URL" };
+      }
+      if (match) return { reason: rule.id, category, ...match };
     }
 
     if (settings.blockAiFeatures) {
-      for (const rule of getSiteRules()) {
-        const selectorHit = rule.selectors.find((selector) => safeMatches(element, selector));
-        const textHit = locateEvidence(parts, rule.textPatterns);
-        const sourceHit = sourceDomainMatches(element, rule.sourceDomains);
-        let match = null;
-        if (rule.selectorRequiresEvidence) {
-          if (sourceHit) match = { evidence: sourceHit, source: "link URL" };
-          else if (selectorHit && textHit) match = textHit;
-        } else if (textHit) {
-          match = textHit;
-        } else if (selectorHit) {
-          match = { evidence: selectorHit, source: "element attributes" };
-        } else if (sourceHit) {
-          match = { evidence: sourceHit, source: "link URL" };
-        }
-        if (match) return { reason: rule.id, ...match };
-      }
-
       const genericHit = locateEvidence(parts, GENERIC_AI_TEXT_PATTERNS);
-      if (genericHit) return { reason: "AI feature text", ...genericHit };
+      if (genericHit) return { reason: "AI feature text", category: "ai", ...genericHit };
 
       const customText = findRegexEvidence(parts, text, settings.customTextRules);
-      if (customText) return { reason: "custom text rule", ...customText };
+      if (customText) return { reason: "custom text rule", category: "custom", ...customText };
 
       const customSelector = settings.customSelectorRules.find((selector) => safeMatches(element, selector));
       if (customSelector) {
-        return { reason: "custom selector rule", evidence: customSelector, source: "element attributes" };
+        return { reason: "custom selector rule", category: "custom", evidence: customSelector, source: "element attributes" };
       }
     }
 
@@ -259,6 +282,7 @@
       if (score >= settings.heuristicThreshold) {
         return {
           reason: "AI-like writing pattern",
+          category: "ai",
           evidence: `score ${score} (threshold ${settings.heuristicThreshold})`,
           source: "text analysis"
         };
@@ -270,6 +294,9 @@
 
   function applyAction(element, detail, settings) {
     const info = typeof detail === "string" ? { reason: detail } : detail;
+    const action = getEffectiveAction(info.category, settings);
+    if (action === "off") return;
+
     const target = getBlockTarget(element);
     if (target.dataset.elarionBlocked === "true") return;
     target.dataset.elarionBlocked = "true";
@@ -277,7 +304,7 @@
     if (info.evidence) target.dataset.elarionEvidence = info.evidence;
     if (info.source) target.dataset.elarionSource = info.source;
 
-    if (settings.debugOverlay) {
+    if (action === "debug") {
       target.classList.add("elarion-debug");
       if (!target.querySelector(":scope > .elarion-debug-badge")) {
         const badge = document.createElement("div");
@@ -291,20 +318,16 @@
         target.prepend(badge);
       }
       state.labeled += 1;
-      return;
-    }
-
-    const reason = info.reason;
-    if (settings.mode === "label") {
+    } else if (action === "label") {
       target.classList.add("elarion-labeled");
       if (!target.querySelector(":scope > .elarion-label-badge")) {
         const badge = document.createElement("div");
         badge.className = "elarion-label-badge";
-        badge.textContent = `Elarion flagged: ${reason}`;
+        badge.textContent = `Elarion flagged: ${info.reason}`;
         target.prepend(badge);
       }
       state.labeled += 1;
-    } else if (settings.mode === "blur") {
+    } else if (action === "blur") {
       target.classList.add("elarion-blurred");
       state.blocked += 1;
     } else {
@@ -315,18 +338,24 @@
 
   function scanSelectors(root, settings) {
     const selectorGroups = [];
-    if (settings.blockAds) selectorGroups.push(...GENERIC_AD_SELECTORS);
+    if (settings.blockAds) {
+      GENERIC_AD_SELECTORS.forEach((selector) => selectorGroups.push({ selector, category: "ad" }));
+    }
+    getSiteRules()
+      .filter((rule) => !rule.selectorRequiresEvidence)
+      .forEach((rule) => {
+        const category = rule.category || "ai";
+        if (category === "ad" ? !settings.blockAds : !settings.blockAiFeatures) return;
+        rule.selectors.forEach((selector) => selectorGroups.push({ selector, category }));
+      });
     if (settings.blockAiFeatures) {
-      getSiteRules()
-        .filter((rule) => !rule.selectorRequiresEvidence)
-        .forEach((rule) => selectorGroups.push(...rule.selectors));
-      selectorGroups.push(...settings.customSelectorRules);
+      settings.customSelectorRules.forEach((selector) => selectorGroups.push({ selector, category: "custom" }));
     }
 
-    selectorGroups.forEach((selector) => {
+    selectorGroups.forEach(({ selector, category }) => {
       safeQuerySelectorAll(root, selector).forEach((element) => {
         if (element instanceof HTMLElement) {
-          applyAction(element, { reason: selector, evidence: selector, source: "element attributes" }, settings);
+          applyAction(element, { reason: selector, category, evidence: selector, source: "element attributes" }, settings);
         }
       });
     });

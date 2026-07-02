@@ -9,9 +9,16 @@ function isPlainDomain(value) {
 
 async function syncAdNetworkRules() {
   const settings = { ...DEFAULT_SETTINGS, ...(await chrome.storage.sync.get(DEFAULT_SETTINGS)) };
-  const excluded = [...settings.disabledSites, ...settings.allowlist]
-    .map((entry) => String(entry).trim().toLowerCase().replace(/^www\./, ""))
-    .filter(isPlainDomain);
+  // Sites whose preset keeps ads visible (off/label/blur) must also keep
+  // their ad requests: a blocked request can never be labeled or blurred.
+  const presetExcluded = Object.entries(settings.sitePresets || {})
+    .filter(([, preset]) => ["off", "label", "blur"].includes(preset?.adAction))
+    .map(([site]) => site);
+  const excluded = [...new Set(
+    [...settings.disabledSites, ...settings.allowlist, ...presetExcluded]
+      .map((entry) => String(entry).trim().toLowerCase().replace(/^www\./, ""))
+      .filter(isPlainDomain)
+  )];
 
   const addRules = settings.enabled && settings.blockAdNetwork
     ? [{
