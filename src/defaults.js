@@ -7,6 +7,7 @@
     heuristicDetection: true,
     heuristicThreshold: 7,
     debugOverlay: false,
+    blockAdNetwork: true,
     disabledSites: [],
     allowlist: [],
     customTextRules: [],
@@ -154,6 +155,26 @@
     "iframe[src*='adservice']"
   ];
 
+  // Pure ad-serving domains only. Never add CDNs or dual-use domains here:
+  // these are blocked at the network level for every third-party request.
+  const AD_NETWORK_DOMAINS = [
+    "doubleclick.net",
+    "googlesyndication.com",
+    "googleadservices.com",
+    "adnxs.com",
+    "rubiconproject.com",
+    "flashtalking.com",
+    "criteo.com",
+    "criteo.net",
+    "taboola.com",
+    "outbrain.com",
+    "pubmatic.com",
+    "openx.net",
+    "amazon-adsystem.com",
+    "smartadserver.com",
+    "adform.net"
+  ];
+
   const AI_HEURISTIC_PHRASES = [
     "in today's fast-paced world",
     "delve into",
@@ -179,6 +200,7 @@
     SITE_RULES,
     GENERIC_AI_TEXT_PATTERNS,
     GENERIC_AD_SELECTORS,
+    AD_NETWORK_DOMAINS,
     AI_HEURISTIC_PHRASES
   };
 })(globalThis);

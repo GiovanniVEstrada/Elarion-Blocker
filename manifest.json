@@ -3,7 +3,7 @@
   "name": "Elarion Blocker",
   "description": "Blocks ads, AI answer panels, AI feature boxes, and low-quality AI-like content with local rules.",
   "version": "0.1.0",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab", "scripting", "declarativeNetRequest"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "src/background.js"

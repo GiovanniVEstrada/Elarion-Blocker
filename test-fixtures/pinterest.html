@@ -71,6 +71,20 @@
       max-width: 78ch;
     }
     footer code { background: #eae6df; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    .net-test {
+      margin: 0 28px 24px;
+      max-width: 1200px;
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    .net-test h2 { margin: 0 0 6px; font-size: 15px; }
+    .net-test p { margin: 0 0 10px; font-size: 13px; color: #5c554d; }
+    #netTestResult { font-size: 13px; font-weight: 700; padding: 6px 10px; border-radius: 6px; display: inline-block; }
+    .net-good { background: #e3efe3; color: #2c6234; }
+    .net-bad { background: #f6e3e0; color: #93362a; }
+    .net-wait { background: #eae6df; color: #5c554d; }
   </style>
 </head>
 <body>
@@ -159,6 +173,29 @@
     </div>
 
   </div>
+
+  <div class="net-test">
+    <h2>Network blocking test</h2>
+    <p>Tries to load a script from a well-known ad-serving domain. With the
+       <strong>Ad networks</strong> toggle on, the request should be blocked before it leaves the browser.</p>
+    <div id="netTestResult" class="net-wait">Testing&hellip;</div>
+  </div>
+  <script>
+    (function () {
+      var result = document.getElementById("netTestResult");
+      var probe = document.createElement("script");
+      probe.src = "https://static.doubleclick.net/instream/ad_status.js";
+      probe.onload = function () {
+        result.textContent = "NOT BLOCKED — the ad script loaded. Turn on the Ad networks toggle and reload.";
+        result.className = "net-bad";
+      };
+      probe.onerror = function () {
+        result.textContent = "BLOCKED ✔ — the request failed (network blocking is working, or you are offline).";
+        result.className = "net-good";
+      };
+      document.head.appendChild(probe);
+    })();
+  </script>
 
   <footer>
     <p><strong>Reading results:</strong> pin 2 may show either an attribute-selector reason or

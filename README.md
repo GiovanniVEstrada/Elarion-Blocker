@@ -9,13 +9,14 @@ It does not claim to reliably detect all AI-generated writing. The MVP focuses o
 - Chrome Manifest V3 extension
 - Content script DOM scanning
 - Generic ad selectors
+- Network-level ad blocking with `declarativeNetRequest`: third-party requests to known ad-serving domains (DoubleClick, Google Syndication, Rubicon Project, Flashtalking, Criteo, Taboola, Outbrain, and others) are blocked before they load; sites on the allowlist or disabled list are excluded
 - Site-specific AI feature filters for Google, Bing, LinkedIn, Reddit, Medium, and Pinterest
 - Pinterest-specific blocking for promoted pins, sponsored UI, AI-art terms, AI-image generator mentions, and known AI-art source domains
 - Local text heuristics for AI-like writing patterns
 - Popup controls:
   - Enable or disable globally
   - Hide, blur, or label matches
-  - Toggle ad blocking, AI feature blocking, and heuristic detection
+  - Toggle ad blocking, ad network blocking, AI feature blocking, and heuristic detection
   - Debug overlay that shows each match with its reason, the evidence that matched, and where the evidence was found (visible text, image alt text, link URL, and so on) without hiding anything
   - Disable on current site
 - Options page:
