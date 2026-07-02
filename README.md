@@ -39,6 +39,16 @@ Pinterest gets special handling because useful signals often live inside pin met
 3. Click `Load unpacked`.
 4. Select this folder.
 
+## Testing
+
+`test-fixtures/pinterest.html` is a local page of fake pin cards for tuning Pinterest rules against stable markup instead of the live site:
+
+1. In `chrome://extensions`, open Elarion's details and enable **Allow access to file URLs**.
+2. Set the mode to **Label only** in the popup.
+3. Open the fixture file in Chrome and compare each card against its EXPECT chip.
+
+The fixture impersonates `www.pinterest.com` through a `<meta name="elarion-host-override">` tag. The content script honors that tag only on `file:` pages, so remote sites cannot use it.
+
 ## Project Structure
 
 ```text
@@ -53,6 +63,8 @@ src/
   popup.html
   popup.js
   ui.css
+test-fixtures/
+  pinterest.html
 ```
 
 ## Notes

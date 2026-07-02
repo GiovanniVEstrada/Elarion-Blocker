@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Makes Elarion apply its Pinterest site rules to this local file.
+       content.js honors this tag only on file: pages. -->
+  <meta name="elarion-host-override" content="www.pinterest.com">
+  <title>Elarion fixture: Pinterest</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: #f4f2ef;
+      color: #211d1a;
+    }
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e2ddd6;
+      padding: 20px 28px;
+    }
+    header h1 { margin: 0 0 8px; font-size: 20px; }
+    header p { margin: 4px 0; font-size: 14px; color: #5c554d; max-width: 72ch; }
+    header ol { font-size: 14px; color: #5c554d; margin: 8px 0; padding-left: 22px; }
+    header li { margin: 2px 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 18px;
+      padding: 24px 28px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .fixture-pin {
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      position: relative;
+    }
+    .fixture-pin img { display: block; width: 100%; height: auto; }
+    .pin-body { padding: 10px 12px 12px; }
+    .pin-body h2 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+    .pin-body a { font-size: 12px; color: #7a4a2b; word-break: break-all; }
+    .promo-tag {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.72);
+      color: #fff;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+    .expect {
+      display: inline-block;
+      margin-bottom: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .expect-clean { background: #e3efe3; color: #2c6234; }
+    .expect-flag { background: #f6e3e0; color: #93362a; }
+    footer {
+      padding: 8px 28px 32px;
+      font-size: 13px;
+      color: #5c554d;
+      max-width: 78ch;
+    }
+    footer code { background: #eae6df; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Elarion test fixture — Pinterest</h1>
+    <p>Fake pin cards with stable markup for tuning rules without live Pinterest.</p>
+    <ol>
+      <li>In chrome://extensions, open Elarion&rsquo;s Details and enable <strong>Allow access to file URLs</strong>.</li>
+      <li>Set Elarion&rsquo;s mode to <strong>Label only</strong> in the popup.</li>
+      <li>Open this file in Chrome and check each card against its EXPECT chip.</li>
+    </ol>
+    <p>Pin 1 and the two trap pins must stay clean. Pin 2 (ad label), pin 3 (generator name in metadata), and pin 4 (art-platform link) must each get a badge.</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- Pin 1: normal pin, no signals anywhere. Must stay clean. -->
+    <div class="fixture-pin" data-test-id="pin" data-expected="clean">
+      <img width="236" height="320" alt="Rustic farmhouse kitchen with open wood shelving"
+           src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%23c8b6a6'/%3E%3C/svg%3E">
+      <div class="pin-body">
+        <span class="expect expect-clean">EXPECT: CLEAN</span>
+        <h2>Rustic farmhouse kitchen decor</h2>
+        <a href="https://example.com/rustic-kitchen-decor">example.com/rustic-kitchen-decor</a>
+      </div>
+    </div>
+
+    <!-- Pin 2: carries an advertising label, both as visible text and as an
+         aria-label attribute (the attribute is what real feeds usually expose). -->
+    <div class="fixture-pin" data-test-id="pin" data-expected="flagged">
+      <div class="promo-tag" aria-label="Promoted">Promoted</div>
+      <img width="236" height="320" alt="Modern white sneakers product photo"
+           src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%23a6b4c8'/%3E%3C/svg%3E">
+      <div class="pin-body">
+        <span class="expect expect-flag">EXPECT: FLAGGED</span>
+        <h2>CloudStep everyday sneakers</h2>
+        <a href="https://example.com/cloudstep-sneakers">example.com/cloudstep-sneakers</a>
+      </div>
+    </div>
+
+    <!-- Pin 3: generator name in image alt text plus a prompt-style caption.
+         Signals live in metadata, not just visible copy, like real pins. -->
+    <div class="fixture-pin" data-test-id="pin" data-expected="flagged">
+      <img width="236" height="320" alt="Cyberpunk portrait made with Midjourney v6"
+           src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%238c7bb0'/%3E%3C/svg%3E">
+      <div class="pin-body">
+        <span class="expect expect-flag">EXPECT: FLAGGED</span>
+        <h2>Neon cyberpunk portrait &mdash; prompt: glowing city lights, rain</h2>
+        <a href="https://example.com/cyberpunk-portraits">example.com/cyberpunk-portraits</a>
+      </div>
+    </div>
+
+    <!-- Pin 4: caption and alt are innocent; the only signal is the outbound
+         link to a known art-platform domain. Source domain alone must flag it. -->
+    <div class="fixture-pin" data-test-id="pin" data-expected="flagged">
+      <img width="236" height="320" alt="Armored fantasy knight illustration"
+           src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%23b0a17b'/%3E%3C/svg%3E">
+      <div class="pin-body">
+        <span class="expect expect-flag">EXPECT: FLAGGED</span>
+        <h2>Fantasy knight character design</h2>
+        <a href="https://civitai.com/models/12345/fantasy-knight">civitai.com/models/12345</a>
+      </div>
+    </div>
+
+    <!-- Trap A: "Dallas" must not match the DALL-E pattern, and "painted"
+         contains the letters "ai" without matching any pattern. -->
+    <div class="fixture-pin" data-test-id="pin" data-expected="clean">
+      <img width="236" height="320" alt="Hand-painted city skyline mural in warm sunset colors"
+           src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%23c89a7b'/%3E%3C/svg%3E">
+      <div class="pin-body">
+        <span class="expect expect-clean">EXPECT: CLEAN</span>
+        <h2>Hand-painted Dallas skyline mural &mdash; acrylic on canvas</h2>
+        <a href="https://example.com/dallas-mural">example.com/dallas-mural</a>
+      </div>
+    </div>
+
+    <!-- Trap B: "air" contains the letters "ai"; nothing here should match. -->
+    <div class="fixture-pin" data-test-id="pin" data-expected="clean">
+      <img width="236" height="320" alt="Crispy air fryer chicken with roasted vegetables"
+           src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='236' height='320'%3E%3Crect width='100%25' height='100%25' fill='%239bb08a'/%3E%3C/svg%3E">
+      <div class="pin-body">
+        <span class="expect expect-clean">EXPECT: CLEAN</span>
+        <h2>Air fryer dinner ideas for busy weeknights</h2>
+        <a href="https://example.com/air-fryer-dinners">example.com/air-fryer-dinners</a>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <p><strong>Reading results:</strong> pin 2 may show either an attribute-selector reason or
+    <code>pinterest-ai-content</code> &mdash; both are correct, since two rules legitimately catch it.
+    Pins 3 and 4 should show <code>pinterest-ai-content</code>.</p>
+    <p><strong>Regression check:</strong> if every card gets a badge with a reason like
+    <code>[data-test-id='pin']</code>, broad selectors are blocking directly again and the old
+    Pinterest bug has returned.</p>
+  </footer>
+</body>
+</html>

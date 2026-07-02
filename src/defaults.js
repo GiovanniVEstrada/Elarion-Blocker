@@ -73,6 +73,8 @@
         "[data-test-id*='pin' i]"
       ],
       textPatterns: [
+        "Promoted",
+        "Sponsored",
         "AI generated",
         "AI-generated",
         "AI art",

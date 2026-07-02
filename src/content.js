@@ -41,13 +41,24 @@
     return hostname.replace(/^www\./, "").toLowerCase();
   }
 
+  function getPageHost() {
+    // Local test fixtures can impersonate a site with
+    // <meta name="elarion-host-override" content="www.pinterest.com">.
+    // Honored only on file: pages so remote sites can never use it.
+    if (location.protocol === "file:") {
+      const override = document.querySelector("meta[name='elarion-host-override']")?.getAttribute("content");
+      if (override) return normalizeHost(override.trim());
+    }
+    return normalizeHost(location.hostname);
+  }
+
   function isSiteDisabled(settings) {
-    const host = normalizeHost(location.hostname);
+    const host = getPageHost();
     return settings.disabledSites.some((site) => host === site || host.endsWith(`.${site}`));
   }
 
   function isAllowed(settings, elementText) {
-    const host = normalizeHost(location.hostname);
+    const host = getPageHost();
     const domainAllowed = settings.allowlist.some((site) => host === site || host.endsWith(`.${site}`));
     if (domainAllowed) return true;
     return settings.allowlist.some((entry) => entry && elementText.toLowerCase().includes(entry.toLowerCase()));
@@ -85,7 +96,7 @@
   }
 
   function getSiteRules() {
-    const host = normalizeHost(location.hostname);
+    const host = getPageHost();
     return SITE_RULES.filter((rule) => rule.hostIncludes.some((part) => host.includes(part)));
   }
 
@@ -122,7 +133,7 @@
   }
 
   function getBlockTarget(element) {
-    if (normalizeHost(location.hostname).includes("pinterest.")) {
+    if (getPageHost().includes("pinterest.")) {
       return element.closest("[data-test-id='pin'], [data-test-id='pinWrapper'], [data-test-id='closeup-main-pin'], [role='listitem'], [data-grid-item]")
         || element;
     }
@@ -179,7 +190,7 @@
     if (!text.trim() && element.tagName !== "IFRAME") return null;
     if (isAllowed(settings, text)) return null;
 
-    const host = normalizeHost(location.hostname);
+    const host = getPageHost();
     if (settings.customDomainRules.some((domain) => host === domain || host.endsWith(`.${domain}`))) {
       return "custom domain rule";
     }
