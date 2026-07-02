@@ -89,6 +89,50 @@
       top: 0;
       width: 236px;
     }
+    .player-demo {
+      position: relative;
+      margin: 0 28px 24px;
+      max-width: 640px;
+      aspect-ratio: 16 / 9;
+      background: #14161a;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .player-demo .play-glyph {
+      width: 0;
+      height: 0;
+      border-left: 34px solid #e8e8e8;
+      border-top: 21px solid transparent;
+      border-bottom: 21px solid transparent;
+    }
+    .player-demo .player-bar {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #d8d8d8;
+      font-size: 12px;
+    }
+    .player-demo .player-track {
+      flex: 1;
+      height: 4px;
+      border-radius: 999px;
+      background: #3c4048;
+    }
+    .player-demo .player-track::before {
+      content: "";
+      display: block;
+      width: 35%;
+      height: 100%;
+      border-radius: 999px;
+      background: #d64f2a;
+    }
+    .player-demo .expect { position: absolute; top: 10px; left: 12px; }
     .net-test {
       margin: 0 28px 24px;
       max-width: 1200px;
@@ -231,6 +275,22 @@
       </div>
     </div>
 
+  </div>
+
+  <div class="masonry-note">
+    <h2>Player protection test</h2>
+    <p>This fake video player carries an advertisement label, which would normally hide it.
+       Media players must never be hidden or blurred: expect it to stay visible with its controls.</p>
+  </div>
+  <div class="player-demo html5-video-player" aria-label="Advertisement">
+    <span class="expect expect-clean">EXPECT: VISIBLE</span>
+    <div class="play-glyph"></div>
+    <div class="player-bar">
+      <span>&#9654;</span>
+      <div class="player-track"></div>
+      <span>1:23 / 3:57</span>
+      <span>&#128266;</span>
+    </div>
   </div>
 
   <div class="net-test">

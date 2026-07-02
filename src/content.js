@@ -297,12 +297,24 @@
     return null;
   }
 
+  // A page must stay usable even when a rule misfires: media players are
+  // never hidden or blurred. Bare <video> tags are only protected when
+  // they are the target itself, so promoted tiles that merely contain a
+  // preview clip can still be hidden.
+  const PLAYER_SELECTOR = "#movie_player, .html5-video-player, .video-js, .jwplayer, [class*='video-player']";
+
+  function isProtectedTarget(target) {
+    return safeMatches(target, `video, audio, ${PLAYER_SELECTOR}`)
+      || Boolean(target.querySelector(PLAYER_SELECTOR));
+  }
+
   function applyAction(element, detail, settings) {
     const info = typeof detail === "string" ? { reason: detail } : detail;
     const action = getEffectiveAction(info.category, settings);
     if (action === "off") return;
 
     const target = getBlockTarget(element);
+    if ((action === "hide" || action === "blur") && isProtectedTarget(target)) return;
     if (target.dataset.elarionBlocked === "true") return;
     target.dataset.elarionBlocked = "true";
     target.dataset.elarionReason = info.reason;

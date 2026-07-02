@@ -11,6 +11,8 @@ It does not claim to reliably detect all AI-generated writing. The MVP focuses o
 - Generic ad selectors
 - Network-level ad blocking with `declarativeNetRequest`: third-party requests to known ad-serving domains (DoubleClick, Google Syndication, Rubicon Project, Flashtalking, Criteo, Taboola, Outbrain, and others) are blocked before they load; sites on the allowlist or disabled list are excluded
 - Site-specific AI feature filters for Google, Bing, LinkedIn, Reddit, Medium, and Pinterest
+- Site-specific ad filters for YouTube (display ads, in-feed promoted videos, masthead, companion slots). In-stream video ads are not blocked: they play inside the protected player, and removing them requires techniques outside this extension's scope
+- Media players (YouTube's player, video-js, JW Player, plain video/audio tags) are never hidden or blurred, even when an ad rule matches them or their container
 - Pinterest-specific blocking for promoted pins, sponsored UI, AI-art terms, AI-image generator mentions, and known AI-art source domains
 - Local text heuristics for AI-like writing patterns
 - Built for speed: unambiguous ad elements are hidden by pure CSS before the first paint, the scanner starts at `document_start`, and after the initial pass it only deep-scans newly added content instead of re-walking the whole page — so infinite feeds stay smooth
