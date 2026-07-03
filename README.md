@@ -13,6 +13,7 @@ It does not claim to reliably detect all AI-generated writing. The MVP focuses o
 - Site-specific AI feature filters for Google, Bing, LinkedIn, Reddit, Medium, and Pinterest
 - Site-specific ad filters for YouTube (display ads, in-feed promoted videos, masthead, companion slots). In-stream video ads are not blocked: they play inside the protected player, and removing them requires techniques outside this extension's scope
 - Media players (YouTube's player, video-js, JW Player, plain video/audio tags) are never hidden or blurred, even when an ad rule matches them or their container
+- Twitch: display/promoted directory ads are hidden, and during a stream ad break the player is muted and covered with a calm "Ad break" panel until it ends. Twitch stitches video ads into the stream server-side, so the ad still plays underneath — Elarion hides and silences it rather than removing it, and does not use stream-swapping proxies
 - Pinterest-specific blocking for promoted pins, sponsored UI, AI-art terms, AI-image generator mentions, and known AI-art source domains
 - Local text heuristics for AI-like writing patterns
 - Click-hijack protection: invisible high-z-index overlays that steal clicks to open pop-up ads (common on streaming sites) are detected and removed, and a first-in-line click interceptor swallows a hijacked click even when an overlay respawns right before it; pop-under ad networks (PropellerAds, PopAds, PopCash, Adsterra, HilltopAds, ExoClick, and others) are blocked at the network level

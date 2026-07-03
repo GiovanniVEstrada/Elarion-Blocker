@@ -95,6 +95,16 @@
       textPatterns: []
     },
     {
+      id: "twitch-promoted",
+      category: "ad",
+      hostIncludes: ["twitch.tv"],
+      selectors: [
+        "[data-a-target*='promoted' i]",
+        "[data-a-target*='sponsored' i]"
+      ],
+      textPatterns: []
+    },
+    {
       id: "pinterest-promoted",
       category: "ad",
       hostIncludes: ["pinterest."],

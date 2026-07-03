@@ -471,6 +471,61 @@
     target.appendChild(cover);
   }
 
+  // Twitch stitches video ads into the stream server-side, so they cannot
+  // be removed. During a marked ad break the player is muted and covered;
+  // both are restored the moment the break ends.
+  const TWITCH_AD_MARKER_SELECTOR = "[data-a-target='video-ad-label'], [data-a-target='video-ad-countdown']";
+  const twitchAd = { covering: false, video: null, wasMuted: false, cover: null, timer: null };
+
+  function isTwitchAdBreak() {
+    return Boolean(document.querySelector(TWITCH_AD_MARKER_SELECTOR));
+  }
+
+  function startTwitchAdCover() {
+    const video = document.querySelector("video");
+    if (!video || !video.parentElement) return;
+    twitchAd.video = video;
+    twitchAd.wasMuted = video.muted;
+    video.muted = true;
+
+    const cover = document.createElement("div");
+    cover.className = "elarion-adbreak-cover";
+    const label = document.createElement("span");
+    label.textContent = "Ad break — hidden by Elarion. The stream returns automatically.";
+    cover.appendChild(label);
+    video.parentElement.appendChild(cover);
+    twitchAd.cover = cover;
+    twitchAd.covering = true;
+    state.blocked += 1;
+
+    // Ad-break markers disappear via node removal, which the incremental
+    // scanner does not watch, so the end of the break is polled.
+    twitchAd.timer = window.setInterval(() => {
+      if (!isTwitchAdBreak()) stopTwitchAdCover();
+    }, 1000);
+  }
+
+  function stopTwitchAdCover() {
+    if (twitchAd.timer) {
+      window.clearInterval(twitchAd.timer);
+      twitchAd.timer = null;
+    }
+    if (twitchAd.cover) twitchAd.cover.remove();
+    if (twitchAd.video && !twitchAd.wasMuted) twitchAd.video.muted = false;
+    twitchAd.cover = null;
+    twitchAd.video = null;
+    twitchAd.covering = false;
+  }
+
+  function watchTwitchAds() {
+    if (!getPageHost().includes("twitch.tv")) return;
+    if (!state.settings.blockAds || getEffectiveAction("ad", state.settings) === "off") {
+      if (twitchAd.covering) stopTwitchAdCover();
+      return;
+    }
+    if (!twitchAd.covering && isTwitchAdBreak()) startTwitchAdCover();
+  }
+
   function scanSelectors(root, settings) {
     const selectorGroups = [];
     if (settings.blockAds) {
@@ -555,6 +610,8 @@
       }
     }
 
+    watchTwitchAds();
+
     if (isExtensionContextReady()) {
       sendRuntimeMessage({
         type: "ELARION_STATS",
@@ -567,6 +624,7 @@
   }
 
   function resetActions() {
+    if (twitchAd.covering) stopTwitchAdCover();
     document.querySelectorAll(".elarion-label-badge, .elarion-debug-badge, .elarion-cover").forEach((node) => node.remove());
     document.querySelectorAll("[data-elarion-blocked]").forEach((element) => {
       element.classList.remove("elarion-hidden", "elarion-blurred", "elarion-labeled", "elarion-debug", "elarion-tile-hidden");

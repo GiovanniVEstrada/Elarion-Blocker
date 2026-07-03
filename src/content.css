@@ -13,6 +13,20 @@ html:not([data-elarion-ads-off]) iframe[src*="adservice"] {
   display: none !important;
 }
 
+.elarion-adbreak-cover {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 24px !important;
+  text-align: center !important;
+  background: #0e0e10 !important;
+  color: #adadb8 !important;
+  font: 500 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  z-index: 2147483000 !important;
+}
+
 /* Layout-preserving hide for absolutely positioned tiles (masonry grids):
    the tile keeps its slot, its content is blanked, and a quiet cover sits
    on top so the page never shows a hole. */
