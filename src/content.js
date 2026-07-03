@@ -308,6 +308,45 @@
       || Boolean(target.querySelector(PLAYER_SELECTOR));
   }
 
+  function isClickHijackOverlay(element) {
+    if (element.dataset.elarionBlocked === "true") return false;
+    const tag = element.tagName;
+    if (tag !== "DIV" && tag !== "A" && tag !== "IFRAME") return false;
+    if (typeof element.className === "string" && element.className.startsWith("elarion-")) return false;
+    // Anything inside or wrapping a media player is off limits: players
+    // legitimately use transparent click layers for play/pause.
+    if (element.closest(PLAYER_SELECTOR)) return false;
+    if (element.querySelector(PLAYER_SELECTOR)) return false;
+
+    const style = getComputedStyle(element);
+    if (style.position !== "fixed" && style.position !== "absolute") return false;
+    if (style.display === "none" || style.visibility === "hidden" || style.pointerEvents === "none") return false;
+    const zIndex = parseInt(style.zIndex, 10);
+    if (!Number.isFinite(zIndex) || zIndex < 1000) return false;
+    const rect = element.getBoundingClientRect();
+    if (rect.width < window.innerWidth * 0.5 || rect.height < window.innerHeight * 0.4) return false;
+
+    if (parseFloat(style.opacity) <= 0.05) return true;
+    // An iframe's contents can't be judged from outside, so iframes only
+    // count as hijack overlays when they are truly invisible.
+    if (tag === "IFRAME") return false;
+    const transparentBg = (style.backgroundColor === "rgba(0, 0, 0, 0)" || style.backgroundColor === "transparent")
+      && style.backgroundImage === "none";
+    const empty = !(element.textContent || "").trim()
+      && !element.querySelector("img, svg, video, canvas, iframe, input, button");
+    return transparentBg && empty;
+  }
+
+  function neutralizeOverlay(element) {
+    if (element.dataset.elarionBlocked === "true") return;
+    element.dataset.elarionBlocked = "true";
+    element.dataset.elarionReason = "click-hijack overlay";
+    element.dataset.elarionEvidence = "invisible high z-index layer covering the page";
+    element.dataset.elarionSource = "overlay heuristic";
+    element.classList.add("elarion-hidden");
+    state.blocked += 1;
+  }
+
   function applyAction(element, detail, settings) {
     const info = typeof detail === "string" ? { reason: detail } : detail;
     const action = getEffectiveAction(info.category, settings);
@@ -425,18 +464,21 @@
     if (document.readyState === "loading") return;
 
     const candidates = new Set();
+    let overlayCandidates = [];
     if (state.needsFullSweep) {
       state.needsFullSweep = false;
       state.pendingRoots.clear();
       safeQuerySelectorAll(document, CANDIDATE_SELECTOR).forEach((node) => {
         if (node instanceof HTMLElement) candidates.add(node);
       });
+      overlayCandidates = document.body ? Array.from(document.body.children) : [];
     } else {
       const roots = Array.from(state.pendingRoots);
       state.pendingRoots.clear();
       roots.forEach((root) => {
         if (root.isConnected) collectCandidates(root, candidates);
       });
+      overlayCandidates = roots;
     }
 
     for (const element of candidates) {
@@ -444,6 +486,14 @@
       state.scanned.add(element);
       const detail = findReason(element, state.settings);
       if (detail) applyAction(element, detail, state.settings);
+    }
+
+    if (state.settings.blockAds && getEffectiveAction("ad", state.settings) !== "off") {
+      overlayCandidates.forEach((element) => {
+        if (element instanceof HTMLElement && element.isConnected && isClickHijackOverlay(element)) {
+          neutralizeOverlay(element);
+        }
+      });
     }
 
     if (isExtensionContextReady()) {
@@ -505,7 +555,27 @@
     document.documentElement.toggleAttribute("data-elarion-ads-off", !cssHide);
   }
 
+  function interceptHijackedEvent(event) {
+    const settings = state.settings;
+    if (!settings.enabled || !settings.blockAds || isSiteDisabled(settings)) return;
+    let element = event.target instanceof HTMLElement ? event.target : null;
+    for (let depth = 0; element && element !== document.body && depth < 8; depth += 1) {
+      if (isClickHijackOverlay(element)) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        neutralizeOverlay(element);
+        return;
+      }
+      element = element.parentElement;
+    }
+  }
+
   async function init() {
+    // Registered before anything else on the page so hijacked clicks are
+    // intercepted even if an overlay appeared milliseconds earlier.
+    window.addEventListener("click", interceptHijackedEvent, true);
+    window.addEventListener("mousedown", interceptHijackedEvent, true);
+
     state.settings = await loadSettings();
     syncInstantHide(state.settings);
     state.observer = new MutationObserver(onMutations);

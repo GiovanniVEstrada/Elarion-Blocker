@@ -316,6 +316,42 @@
     })();
   </script>
 
+  <div class="net-test">
+    <h2>Click-hijack overlay test</h2>
+    <p>An invisible full-page layer with a huge z-index covers this page &mdash; the same trick
+       streaming sites use to steal your first click and open a pop-up ad. Elarion should remove
+       it within a moment of the page loading.</p>
+    <div id="overlayTestResult" class="net-wait">Testing&hellip;</div>
+  </div>
+  <div id="hijackOverlay" style="position: fixed; inset: 0; z-index: 2147483000; opacity: 0.01;"></div>
+  <script>
+    (function () {
+      var overlay = document.getElementById("hijackOverlay");
+      var result = document.getElementById("overlayTestResult");
+      overlay.addEventListener("click", function () {
+        overlay.remove();
+        result.textContent = "OVERLAY ATE A CLICK — on a real site this would have opened a pop-up ad.";
+        result.className = "net-bad";
+      });
+      var timer = setInterval(function () {
+        if (!document.contains(overlay) || getComputedStyle(overlay).display === "none") {
+          if (result.className !== "net-bad") {
+            result.textContent = "NEUTRALIZED ✔ — Elarion removed the invisible overlay.";
+            result.className = "net-good";
+          }
+          clearInterval(timer);
+        }
+      }, 250);
+      setTimeout(function () {
+        clearInterval(timer);
+        if (result.className === "net-wait") {
+          result.textContent = "STILL ACTIVE — the overlay is covering the page. Is Elarion enabled?";
+          result.className = "net-bad";
+        }
+      }, 4000);
+    })();
+  </script>
+
   <footer>
     <p><strong>Reading results:</strong> pin 2 is caught by the ad rules (an attribute selector or
     <code>pinterest-promoted</code>) and hidden by the Pinterest preset &mdash; use Debug overlay to inspect it.

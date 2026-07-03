@@ -227,7 +227,20 @@
     "openx.net",
     "amazon-adsystem.com",
     "smartadserver.com",
-    "adform.net"
+    "adform.net",
+    "propellerads.com",
+    "propellerclick.com",
+    "onclickads.net",
+    "popads.net",
+    "popcash.net",
+    "adsterra.com",
+    "hilltopads.net",
+    "exoclick.com",
+    "clickadu.com",
+    "adcash.com",
+    "trafficjunky.com",
+    "juicyads.com",
+    "mgid.com"
   ];
 
   const AI_HEURISTIC_PHRASES = [
