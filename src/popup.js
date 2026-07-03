@@ -9,6 +9,7 @@ const form = {
   debug: document.querySelector("#debugToggle"),
   siteAdAction: document.querySelector("#siteAdAction"),
   siteAiAction: document.querySelector("#siteAiAction"),
+  sitePopupGuard: document.querySelector("#sitePopupGuard"),
   siteToggle: document.querySelector("#siteToggle"),
   optionsButton: document.querySelector("#optionsButton"),
   blockedCount: document.querySelector("#blockedCount"),
@@ -70,9 +71,10 @@ async function updateSitePreset(patch) {
   if (!host) return;
   const key = findPresetKey(host) || host;
   const next = { ...((settings.sitePresets || {})[key] || {}), ...patch };
+  if (!next.popupGuard) delete next.popupGuard;
   const sitePresets = { ...(settings.sitePresets || {}) };
   const isDefault = (value) => !value || value === "default";
-  if (isDefault(next.adAction) && isDefault(next.aiAction)) {
+  if (isDefault(next.adAction) && isDefault(next.aiAction) && !next.popupGuard) {
     delete sitePresets[key];
   } else {
     sitePresets[key] = next;
@@ -90,8 +92,10 @@ function render() {
 
   form.siteAdAction.value = presetValue(preset?.adAction);
   form.siteAiAction.value = presetValue(preset?.aiAction);
+  form.sitePopupGuard.checked = Boolean(preset?.popupGuard);
   form.siteAdAction.disabled = !host;
   form.siteAiAction.disabled = !host;
+  form.sitePopupGuard.disabled = !host;
 
   form.siteLabel.textContent = host || "Current site";
   form.enabled.checked = settings.enabled;
@@ -119,6 +123,7 @@ async function init() {
   form.debug.addEventListener("change", () => saveSettings({ debugOverlay: form.debug.checked }));
   form.siteAdAction.addEventListener("change", () => updateSitePreset({ adAction: form.siteAdAction.value }));
   form.siteAiAction.addEventListener("change", () => updateSitePreset({ aiAction: form.siteAiAction.value }));
+  form.sitePopupGuard.addEventListener("change", () => updateSitePreset({ popupGuard: form.sitePopupGuard.checked }));
   form.siteToggle.addEventListener("click", async () => {
     const host = normalizeHost(new URL(activeTab.url).hostname);
     const disabledSites = settings.disabledSites.includes(host)

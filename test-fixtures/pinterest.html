@@ -143,7 +143,17 @@
     }
     .net-test h2 { margin: 0 0 6px; font-size: 15px; }
     .net-test p { margin: 0 0 10px; font-size: 13px; color: #5c554d; }
-    #netTestResult { font-size: 13px; font-weight: 700; padding: 6px 10px; border-radius: 6px; display: inline-block; }
+    #netTestResult, #overlayTestResult, #popupTestResult { font-size: 13px; font-weight: 700; padding: 6px 10px; border-radius: 6px; display: inline-block; }
+    .net-test button {
+      font: 600 13px/1 -apple-system, "Segoe UI", Roboto, sans-serif;
+      padding: 8px 14px;
+      margin-bottom: 10px;
+      border: 1px solid #d4d4d0;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      display: block;
+    }
     .net-good { background: #e3efe3; color: #2c6234; }
     .net-bad { background: #f6e3e0; color: #93362a; }
     .net-wait { background: #eae6df; color: #5c554d; }
@@ -349,6 +359,35 @@
           result.className = "net-bad";
         }
       }, 4000);
+    })();
+  </script>
+
+  <div class="net-test">
+    <h2>Pop-up guard test</h2>
+    <p>The hijack overlay above automatically arms the strict pop-up guard for this page.
+       This button calls window.open on an external address, exactly like a pop-under script.
+       Nothing should open.</p>
+    <button id="popupTestButton" type="button">Try to open a pop-up</button>
+    <div id="popupTestResult" class="net-wait">Waiting for a click&hellip;</div>
+  </div>
+  <script>
+    (function () {
+      var result = document.getElementById("popupTestResult");
+      document.documentElement.addEventListener("elarion-popup-blocked", function () {
+        result.textContent = "BLOCKED ✔ — the pop-up never opened.";
+        result.className = "net-good";
+      });
+      document.getElementById("popupTestButton").addEventListener("click", function () {
+        var opened = window.open("https://example.com/fake-popunder", "_blank");
+        setTimeout(function () {
+          if (result.className === "net-wait") {
+            result.textContent = opened
+              ? "NOT BLOCKED — a tab opened. Is Elarion enabled?"
+              : "The browser itself blocked it (not Elarion).";
+            result.className = "net-bad";
+          }
+        }, 300);
+      });
     })();
   </script>
 

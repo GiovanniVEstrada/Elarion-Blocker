@@ -198,6 +198,14 @@ input[type="number"] {
   font-size: 13px;
 }
 
+.guard-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .options-shell {
   width: min(900px, calc(100vw - 32px));
   margin: 0 auto;

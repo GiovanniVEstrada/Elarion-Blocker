@@ -15,7 +15,8 @@
     scanned: new WeakSet(),
     queued: false,
     pendingRoots: new Set(),
-    needsFullSweep: true
+    needsFullSweep: true,
+    autoPopupGuard: false
   };
 
   const chromeApi = typeof chrome !== "undefined" ? chrome : null;
@@ -345,6 +346,13 @@
     element.dataset.elarionSource = "overlay heuristic";
     element.classList.add("elarion-hidden");
     state.blocked += 1;
+
+    // A page that plants a click-hijack overlay is hostile: arm the
+    // strict pop-up guard for the rest of this visit.
+    if (!state.autoPopupGuard) {
+      state.autoPopupGuard = true;
+      syncPopupGuard(state.settings);
+    }
   }
 
   function applyAction(element, detail, settings) {
@@ -545,6 +553,15 @@
     }, 80);
   }
 
+  function syncPopupGuard(settings) {
+    // guard.js (MAIN world) reads this attribute on every window.open call.
+    const preset = getSitePreset(settings);
+    const active = settings.enabled
+      && !isSiteDisabled(settings)
+      && (Boolean(preset?.popupGuard) || state.autoPopupGuard);
+    document.documentElement.dataset.elarionPopupGuard = active ? "on" : "off";
+  }
+
   function syncInstantHide(settings) {
     // content.css hides unambiguous ad elements from the first paint;
     // this attribute switches that off when hiding them would be wrong.
@@ -568,6 +585,25 @@
       }
       element = element.parentElement;
     }
+
+    // Under strict pop-up guard, a cross-origin link click on a hostile
+    // site is almost always an ad redirect.
+    if (event.type === "click" && document.documentElement.dataset.elarionPopupGuard === "on") {
+      const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!anchor) return;
+      try {
+        const url = new URL(anchor.href, location.href);
+        const external = (url.protocol === "http:" || url.protocol === "https:")
+          && url.origin !== location.origin;
+        if (external) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          state.blocked += 1;
+        }
+      } catch {
+        // Unparseable hrefs cannot navigate anywhere real.
+      }
+    }
   }
 
   async function init() {
@@ -575,9 +611,13 @@
     // intercepted even if an overlay appeared milliseconds earlier.
     window.addEventListener("click", interceptHijackedEvent, true);
     window.addEventListener("mousedown", interceptHijackedEvent, true);
+    document.documentElement.addEventListener("elarion-popup-blocked", () => {
+      state.blocked += 1;
+    });
 
     state.settings = await loadSettings();
     syncInstantHide(state.settings);
+    syncPopupGuard(state.settings);
     state.observer = new MutationObserver(onMutations);
     state.observer.observe(document.documentElement, { childList: true, subtree: true });
     if (document.readyState === "loading") {
@@ -598,6 +638,7 @@
           resetActions();
           state.needsFullSweep = true;
           syncInstantHide(state.settings);
+          syncPopupGuard(state.settings);
           scanPage();
           sendResponse({ ok: true });
         }
