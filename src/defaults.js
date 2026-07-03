@@ -251,7 +251,8 @@
     "adcash.com",
     "trafficjunky.com",
     "juicyads.com",
-    "mgid.com"
+    "mgid.com",
+    "zanity.net"
   ];
 
   // Phrases used by full-page scam/install interstitials ("Attention: to
