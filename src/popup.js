@@ -4,6 +4,7 @@ const form = {
   mode: document.querySelector("#modeSelect"),
   ads: document.querySelector("#adsToggle"),
   adNetwork: document.querySelector("#adNetworkToggle"),
+  popups: document.querySelector("#popupsToggle"),
   ai: document.querySelector("#aiToggle"),
   heuristic: document.querySelector("#heuristicToggle"),
   debug: document.querySelector("#debugToggle"),
@@ -102,6 +103,7 @@ function render() {
   form.mode.value = settings.mode;
   form.ads.checked = settings.blockAds;
   form.adNetwork.checked = settings.blockAdNetwork;
+  form.popups.checked = settings.blockPopups;
   form.ai.checked = settings.blockAiFeatures;
   form.heuristic.checked = settings.heuristicDetection;
   form.debug.checked = settings.debugOverlay;
@@ -118,6 +120,7 @@ async function init() {
   form.mode.addEventListener("change", () => saveSettings({ mode: form.mode.value }));
   form.ads.addEventListener("change", () => saveSettings({ blockAds: form.ads.checked }));
   form.adNetwork.addEventListener("change", () => saveSettings({ blockAdNetwork: form.adNetwork.checked }));
+  form.popups.addEventListener("change", () => saveSettings({ blockPopups: form.popups.checked }));
   form.ai.addEventListener("change", () => saveSettings({ blockAiFeatures: form.ai.checked }));
   form.heuristic.addEventListener("change", () => saveSettings({ heuristicDetection: form.heuristic.checked }));
   form.debug.addEventListener("change", () => saveSettings({ debugOverlay: form.debug.checked }));

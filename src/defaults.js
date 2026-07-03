@@ -8,6 +8,7 @@
     heuristicThreshold: 7,
     debugOverlay: false,
     blockAdNetwork: true,
+    blockPopups: true,
     disabledSites: [],
     allowlist: [],
     customTextRules: [],
@@ -243,6 +244,21 @@
     "mgid.com"
   ];
 
+  // Phrases used by full-page scam/install interstitials ("Attention: to
+  // display this content properly please activate ..."). Matched only on
+  // large high-z-index overlay elements, never on normal page content.
+  const INTERSTITIAL_TEXT_PATTERNS = [
+    "to display this content",
+    "please activate",
+    "press allow",
+    "click allow",
+    "allow notifications",
+    "you have won",
+    "your download is ready",
+    "your device is infected",
+    "virus detected"
+  ];
+
   const AI_HEURISTIC_PHRASES = [
     "in today's fast-paced world",
     "delve into",
@@ -269,6 +285,7 @@
     GENERIC_AI_TEXT_PATTERNS,
     GENERIC_AD_SELECTORS,
     AD_NETWORK_DOMAINS,
+    INTERSTITIAL_TEXT_PATTERNS,
     AI_HEURISTIC_PHRASES
   };
 })(globalThis);

@@ -4,6 +4,7 @@
     SITE_RULES,
     GENERIC_AI_TEXT_PATTERNS,
     GENERIC_AD_SELECTORS,
+    INTERSTITIAL_TEXT_PATTERNS,
     AI_HEURISTIC_PHRASES
   } = globalThis.ELARION_DEFAULTS;
 
@@ -60,10 +61,13 @@
     return settings.disabledSites.some((site) => host === site || host.endsWith(`.${site}`));
   }
 
-  function isAllowed(settings, elementText) {
+  function isHostAllowlisted(settings) {
     const host = getPageHost();
-    const domainAllowed = settings.allowlist.some((site) => host === site || host.endsWith(`.${site}`));
-    if (domainAllowed) return true;
+    return settings.allowlist.some((site) => host === site || host.endsWith(`.${site}`));
+  }
+
+  function isAllowed(settings, elementText) {
+    if (isHostAllowlisted(settings)) return true;
     return settings.allowlist.some((entry) => entry && elementText.toLowerCase().includes(entry.toLowerCase()));
   }
 
@@ -338,11 +342,47 @@
     return transparentBg && empty;
   }
 
-  function neutralizeOverlay(element) {
+  function isInterstitialOverlay(element) {
+    if (element.dataset.elarionBlocked === "true") return null;
+    if (typeof element.className === "string" && element.className.startsWith("elarion-")) return null;
+    if (element.closest(PLAYER_SELECTOR) || element.querySelector(PLAYER_SELECTOR)) return null;
+    const style = getComputedStyle(element);
+    if (style.position !== "fixed" && style.position !== "absolute") return null;
+    if (style.display === "none" || style.visibility === "hidden") return null;
+    const zIndex = parseInt(style.zIndex, 10);
+    if (!Number.isFinite(zIndex) || zIndex < 1000) return null;
+    const rect = element.getBoundingClientRect();
+    if (rect.width < window.innerWidth * 0.5 || rect.height < window.innerHeight * 0.4) return null;
+    const lower = (element.textContent || "").toLowerCase();
+    return INTERSTITIAL_TEXT_PATTERNS.find((pattern) => lower.includes(pattern)) || null;
+  }
+
+  // Interstitials often dim the page with a separate empty layer; once the
+  // dialog itself is confirmed hostile, orphaned backdrops go with it.
+  function hideOrphanBackdrops(elements) {
+    elements.forEach((element) => {
+      if (!(element instanceof HTMLElement) || element.dataset.elarionBlocked === "true") return;
+      if (typeof element.className === "string" && element.className.startsWith("elarion-")) return;
+      if (element.closest(PLAYER_SELECTOR) || element.querySelector(PLAYER_SELECTOR)) return;
+      const style = getComputedStyle(element);
+      if (style.position !== "fixed" && style.position !== "absolute") return;
+      const zIndex = parseInt(style.zIndex, 10);
+      if (!Number.isFinite(zIndex) || zIndex < 1000) return;
+      const rect = element.getBoundingClientRect();
+      if (rect.width < window.innerWidth * 0.5 || rect.height < window.innerHeight * 0.4) return;
+      const empty = !(element.textContent || "").trim()
+        && !element.querySelector("img, svg, video, canvas, iframe, input, button");
+      if (empty) {
+        neutralizeOverlay(element, "ad interstitial backdrop", "empty full-page layer behind a removed interstitial");
+      }
+    });
+  }
+
+  function neutralizeOverlay(element, reason, evidence) {
     if (element.dataset.elarionBlocked === "true") return;
     element.dataset.elarionBlocked = "true";
-    element.dataset.elarionReason = "click-hijack overlay";
-    element.dataset.elarionEvidence = "invisible high z-index layer covering the page";
+    element.dataset.elarionReason = reason || "click-hijack overlay";
+    element.dataset.elarionEvidence = evidence || "invisible high z-index layer covering the page";
     element.dataset.elarionSource = "overlay heuristic";
     element.classList.add("elarion-hidden");
     state.blocked += 1;
@@ -497,11 +537,22 @@
     }
 
     if (state.settings.blockAds && getEffectiveAction("ad", state.settings) !== "off") {
+      let interstitialCaught = false;
       overlayCandidates.forEach((element) => {
-        if (element instanceof HTMLElement && element.isConnected && isClickHijackOverlay(element)) {
+        if (!(element instanceof HTMLElement) || !element.isConnected) return;
+        if (isClickHijackOverlay(element)) {
           neutralizeOverlay(element);
+          return;
+        }
+        const scamPhrase = isInterstitialOverlay(element);
+        if (scamPhrase) {
+          neutralizeOverlay(element, "ad interstitial", scamPhrase);
+          interstitialCaught = true;
         }
       });
+      if (interstitialCaught && document.body) {
+        hideOrphanBackdrops(Array.from(document.body.children));
+      }
     }
 
     if (isExtensionContextReady()) {
@@ -558,7 +609,8 @@
     const preset = getSitePreset(settings);
     const active = settings.enabled
       && !isSiteDisabled(settings)
-      && (Boolean(preset?.popupGuard) || state.autoPopupGuard);
+      && !isHostAllowlisted(settings)
+      && (settings.blockPopups || Boolean(preset?.popupGuard) || state.autoPopupGuard);
     document.documentElement.dataset.elarionPopupGuard = active ? "on" : "off";
   }
 
@@ -586,9 +638,12 @@
       element = element.parentElement;
     }
 
-    // Under strict pop-up guard, a cross-origin link click on a hostile
-    // site is almost always an ad redirect.
-    if (event.type === "click" && document.documentElement.dataset.elarionPopupGuard === "on") {
+    // Only strict-guarded sites (hostile by preset or by a caught overlay)
+    // get cross-origin link blocking; globally that would break ordinary
+    // external links everywhere.
+    const strictGuard = Boolean(getSitePreset(settings)?.popupGuard) || state.autoPopupGuard;
+    if (event.type === "click" && strictGuard
+      && document.documentElement.dataset.elarionPopupGuard === "on") {
       const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
       if (!anchor) return;
       try {

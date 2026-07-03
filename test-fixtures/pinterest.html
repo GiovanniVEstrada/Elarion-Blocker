@@ -364,9 +364,9 @@
 
   <div class="net-test">
     <h2>Pop-up guard test</h2>
-    <p>The hijack overlay above automatically arms the strict pop-up guard for this page.
-       This button calls window.open on an external address, exactly like a pop-under script.
-       Nothing should open.</p>
+    <p>Pop-up blocking is on everywhere by default (and the hijack overlay above also arms the
+       strict guard for this page). This button calls window.open on an external address,
+       exactly like a pop-under script. Nothing should open.</p>
     <button id="popupTestButton" type="button">Try to open a pop-up</button>
     <div id="popupTestResult" class="net-wait">Waiting for a click&hellip;</div>
   </div>
@@ -388,6 +388,42 @@
           }
         }, 300);
       });
+    })();
+  </script>
+
+  <div class="net-test">
+    <h2>Fake install dialog test</h2>
+    <p>A full-page &ldquo;Attention&rdquo; dialog pushing a browser install covers this page,
+       like the ones streaming sites inject. Elarion should recognize the scam wording on the
+       oversized overlay and remove it, backdrop included.</p>
+    <div id="interstitialTestResult" class="net-wait">Testing&hellip;</div>
+  </div>
+  <div id="fakeInterstitial" style="position: fixed; inset: 0; z-index: 2147482000; background: rgba(24, 24, 24, 0.65); display: flex; align-items: center; justify-content: center;">
+    <div style="background: #1c1c1c; color: #e8e8e8; padding: 26px 32px; border-radius: 10px; max-width: 420px; font-family: system-ui, sans-serif;">
+      <h2 style="margin: 0 0 10px; color: #fff;">Attention</h2>
+      <p style="margin: 0 0 18px;">To display this content properly please activate SuperBrowser&nbsp;3000.</p>
+      <span style="color: #8fb8d8; font-weight: 600;">CANCEL</span>
+      <span style="color: #8fb8d8; font-weight: 600; margin-left: 20px;">INSTALL</span>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var dialog = document.getElementById("fakeInterstitial");
+      var result = document.getElementById("interstitialTestResult");
+      var timer = setInterval(function () {
+        if (!document.contains(dialog) || getComputedStyle(dialog).display === "none") {
+          result.textContent = "NEUTRALIZED ✔ — Elarion removed the fake install dialog.";
+          result.className = "net-good";
+          clearInterval(timer);
+        }
+      }, 250);
+      setTimeout(function () {
+        clearInterval(timer);
+        if (result.className === "net-wait") {
+          result.textContent = "STILL SHOWING — the fake dialog was not removed. Is Elarion enabled?";
+          result.className = "net-bad";
+        }
+      }, 4000);
     })();
   </script>
 
